@@ -1,4 +1,5 @@
 """Abstraction for feature extraction and data manipulation"""
+import json
 import os
 import random
 
@@ -60,24 +61,25 @@ def _fetch_data_for_class(root: str, files: [str]) -> (np.ndarray, int):
     return res, sr
 
 
-def _form_data_array(data_dir: str, class_tree: {str: [str]}) -> (np.ndarray, np.ndarray, {str: object}):
-    counter = 0
-    metadata = {}
-    mapping = {}
+def _labels_to_numbers(class_tree: {str: [str]}) -> {str: int}:
+    return dict([(k, i) for i, k in enumerate(class_tree.keys())])
+
+
+def _form_data_array(data_dir: str, class_tree: {str: [str]}, metadata) -> (np.ndarray, np.ndarray, {str: object}):
     labels = []
     data = []
+    mapping = metadata[LABELS_KEY]
     for label, files in class_tree.items():
         print("Reading files for", label)
-        mapping[counter] = label
         contents, sr = _fetch_data_for_class(data_dir, files)
         metadata[SR_KEY] = sr
-        labels.append(np.repeat(counter, contents.shape[0]))
+        num_label = mapping[label]
+        labels.append(np.repeat(num_label, contents.shape[0]))
         data.append(contents)
-        counter += 1
-    metadata[LABELS_KEY] = mapping
+
     labels = np.concatenate(labels)
     data = np.concatenate(data)
-    return data, labels, metadata
+    return data, labels
 
 
 def _mfcc_features(data: np.ndarray, count: int, metadata: {str: object}) -> np.ndarray:
@@ -95,17 +97,25 @@ def _mfcc_features(data: np.ndarray, count: int, metadata: {str: object}) -> np.
     return res
 
 
+def _save_metadata(target_dir: str, metadata) -> None:
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+    # Save the metadata
+    file_name = f"{target_dir}/metadata.json"
+    with open(file_name, 'w') as f:
+        json.dump(metadata, f)
+
+
 def main():
     data_dir = "data/raw"
+    target_dir = "data/ext"
     random.seed(12345)
     class_tree = _files_by_class(data_dir)
-    train, test = _train_test_split(class_tree, 0.9)
-
-    d, l, m = _form_data_array(data_dir, test)
-    print(d.shape, l.shape)
-    d = _mfcc_features(d, 20, m)
-    print(d.shape)
-    print(m)
+    metadata = {LABELS_KEY: _labels_to_numbers(class_tree)}
+    train, test = _train_test_split(class_tree)
+    test_data, test_labels = _form_data_array(data_dir, test, metadata)
+    test_data = _mfcc_features(test_data, 20, metadata)
+    _save_metadata(target_dir, metadata)
 
 
 if __name__ == '__main__':
