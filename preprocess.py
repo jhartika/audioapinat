@@ -1,7 +1,9 @@
 """Abstraction for feature extraction and data manipulation"""
 import os
 import random
-random.seed(12345)
+import librosa
+import numpy as np
+
 
 def extract_features(data_dir: str, output_dir: str) -> None:
     # First scan the file names and make labels
@@ -30,9 +32,40 @@ def _train_test_split(class_tree: {str: [str]}, split_ratio: float =0.8) -> ({st
     return train, test
 
 
-if __name__ == '__main__':
-    class_tree = _files_by_class("data/raw")
+def _fetch_data(file: str, sample_length: float =0.1) -> (np.ndarray, int):
+    contents, sr = librosa.load(file)
+
+    # Calculate the new dimensions and truncate the tail
+    samples = int(sr * sample_length)
+    rows = contents.shape[0] // samples
+    contents = contents[: samples * rows]
+    contents = contents.reshape((rows, samples))
+
+    return contents, sr
+
+
+def _fetch_data_for_class(root: str, files: [str]) -> (np.ndarray, int):
+
+    fetched = []
+    sr = 0
+    for file_name in files:
+        file_name = f'{root}/{file_name}'
+        contents, sr = _fetch_data(file_name)
+        fetched.append(contents)
+    res = np.concatenate(fetched)
+    return res, sr
+
+
+def main():
+    data_dir = "data/raw"
+    random.seed(12345)
+    class_tree = _files_by_class(data_dir)
     train, test = _train_test_split(class_tree)
 
-    for k, v in class_tree.items():
-        print(f"{k}: Total: {len(v)}, Train: {len(train[k])}, Test: {len(test[k])}, Ratio {len(test[k])/len(train[k])}")
+    for label, files in train.items():
+        contents, _ = _fetch_data_for_class(data_dir, files)
+        print(contents.shape)
+
+
+if __name__ == '__main__':
+    main()
