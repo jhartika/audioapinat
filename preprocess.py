@@ -56,15 +56,36 @@ def _fetch_data_for_class(root: str, files: [str]) -> (np.ndarray, int):
     return res, sr
 
 
+def _form_data_array(data_dir, class_tree: {str: [str]}):
+    counter = 0
+    metadata = {}
+    mapping = {}
+    labels = []
+    data = []
+    for label, files in class_tree.items():
+        print("Processing", label)
+        mapping[counter] = label
+        contents, sr = _fetch_data_for_class(data_dir, files)
+        metadata["SR"] = sr
+        labels.append(np.repeat(counter, contents.shape[0]))
+        data.append(contents)
+        counter += 1
+    metadata["LABELS"] = mapping
+    labels = np.concatenate(labels)
+    data = np.concatenate(data)
+    return data, labels, metadata
+
+
 def main():
     data_dir = "data/raw"
     random.seed(12345)
     class_tree = _files_by_class(data_dir)
     train, test = _train_test_split(class_tree)
 
-    for label, files in train.items():
-        contents, _ = _fetch_data_for_class(data_dir, files)
-        print(contents.shape)
+    d, l, m = _form_data_array(data_dir, train)
+
+    print(d.shape, l.shape)
+    print(m)
 
 
 if __name__ == '__main__':
