@@ -106,6 +106,14 @@ def _save_metadata(target_dir: str, metadata) -> None:
         json.dump(metadata, f)
 
 
+def _save_results(target_dir: str, prefix: str, data: np.ndarray, labels: np.ndarray):
+    label_name = f"{target_dir}/{prefix}_labels"
+    data_name = f"{target_dir}/{prefix}_data"
+
+    np.save(data_name, data)
+    np.save(label_name, labels)
+
+
 def main():
     data_dir = "data/raw"
     target_dir = "data/ext"
@@ -116,6 +124,7 @@ def main():
     test_data, test_labels = _form_data_array(data_dir, test, metadata)
     test_data = _mfcc_features(test_data, 20, metadata)
     _save_metadata(target_dir, metadata)
+    _save_results(target_dir, "test", test_data, test_labels)
 
 
 if __name__ == '__main__':
