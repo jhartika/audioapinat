@@ -10,9 +10,26 @@ SR_KEY = "SR"
 LABELS_KEY = "LABELS"
 FEATURE_KEY = "FEATURES"
 
+
 def extract_features(data_dir: str, output_dir: str) -> None:
-    # First scan the file names and make labels
-    pass
+    # Load and split to testing and training
+    class_tree = _files_by_class(data_dir)
+    metadata = {LABELS_KEY: _labels_to_numbers(class_tree)}
+    train, test = _train_test_split(class_tree)
+
+    # Process
+    print("Processing training samples")
+    train_data, train_labels = _form_data_array(data_dir, train, metadata)
+    train_data = _mfcc_features(train_data, 20, metadata)
+    print("Processing testing samples")
+    test_data, test_labels = _form_data_array(data_dir, test, metadata)
+    test_data = _mfcc_features(test_data, 20, metadata)
+
+    # Save results
+    print("Saving results")
+    _save_metadata(output_dir, metadata)
+    _save_results(output_dir, "train", train_data, test_labels)
+    _save_results(output_dir, "test", test_data, test_labels)
 
 
 def _files_by_class(data_dir: str) -> {str: [str]}:
@@ -90,8 +107,6 @@ def _mfcc_features(data: np.ndarray, count: int, metadata: {str: object}) -> np.
     res = np.zeros((rows, count))
 
     for i in range(rows):
-        # res[i, :] = librosa.feature.mfcc(data[i, :], sr, spectr, n_mfcc=count)
-        # Alternatively use above and just flatmap or something
         s = librosa.feature.melspectrogram(data[i, :], sr, hop_length=data.shape[1], n_fft=data.shape[1])
         res[i, :] = np.ravel(librosa.feature.mfcc(S=librosa.power_to_db(s), n_mfcc=count))
     return res
@@ -118,13 +133,7 @@ def main():
     data_dir = "data/raw"
     target_dir = "data/ext"
     random.seed(12345)
-    class_tree = _files_by_class(data_dir)
-    metadata = {LABELS_KEY: _labels_to_numbers(class_tree)}
-    train, test = _train_test_split(class_tree)
-    test_data, test_labels = _form_data_array(data_dir, test, metadata)
-    test_data = _mfcc_features(test_data, 20, metadata)
-    _save_metadata(target_dir, metadata)
-    _save_results(target_dir, "test", test_data, test_labels)
+    extract_features(data_dir, target_dir)
 
 
 if __name__ == '__main__':
