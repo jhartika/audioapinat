@@ -1,4 +1,5 @@
 """Abstraction for feature extraction and data manipulation"""
+import itertools
 import json
 import os
 import random
@@ -11,7 +12,7 @@ LABELS_KEY = "LABELS"
 FEATURE_KEY = "FEATURES"
 
 
-def extract_features(data_dir: str, output_dir: str) -> None:
+def extract_features(data_dir: str, output_dir: str, test_file_dir: str) -> None:
     # Load and split to testing and training
     class_tree = _files_by_class(data_dir)
     metadata = {LABELS_KEY: _labels_to_numbers(class_tree)}
@@ -24,12 +25,15 @@ def extract_features(data_dir: str, output_dir: str) -> None:
     print("Processing testing samples")
     test_data, test_labels = _form_data_array(data_dir, test, metadata)
     test_data = _mfcc_features(test_data, 20, metadata)
+    # Some work which is redone, but cannot be bothered with quality of code
+    test_file_data = _process_files(data_dir, test, metadata)
 
     # Save results
     print("Saving results")
     _save_metadata(output_dir, metadata)
     _save_results(output_dir, "train", train_data, train_labels)
     _save_results(output_dir, "test", test_data, test_labels)
+    save_file_results(test_file_dir, test_file_data)
 
 
 def _files_by_class(data_dir: str) -> {str: [str]}:
@@ -100,14 +104,13 @@ def _form_data_array(data_dir: str, class_tree: {str: [str]}, metadata) -> (np.n
 
 
 def _mfcc_features(data: np.ndarray, count: int, metadata: {str: object}) -> np.ndarray:
-    print("Calculating features")
     sr = metadata[SR_KEY]
     metadata[FEATURE_KEY] = f"Mfcc, {count}"
     rows = data.shape[0]
     res = np.zeros((rows, count))
 
     for i in range(rows):
-        s = librosa.feature.melspectrogram(data[i, :], sr, hop_length=data.shape[1], n_fft=data.shape[1])
+        s = librosa.feature.melspectrogram(data[i, :], sr, hop_length=data.shape[1] + 1, n_fft=data.shape[1])
         res[i, :] = np.ravel(librosa.feature.mfcc(S=librosa.power_to_db(s), n_mfcc=count))
     return res
 
@@ -122,6 +125,8 @@ def _save_metadata(target_dir: str, metadata) -> None:
 
 
 def _save_results(target_dir: str, prefix: str, data: np.ndarray, labels: np.ndarray):
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
     label_name = f"{target_dir}/{prefix}_labels"
     data_name = f"{target_dir}/{prefix}_data"
 
@@ -129,11 +134,31 @@ def _save_results(target_dir: str, prefix: str, data: np.ndarray, labels: np.nda
     np.save(label_name, labels)
 
 
+def save_file_results(target_dir: str, data: {str: np.ndarray}) -> None:
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+    for file, cont in data.items():
+        np.save(f"{target_dir}/{file}", cont)
+
+
+def _process_files(root: str, class_tree: {str: [str]}, metadata: {str: object}) -> {str: np.array}:
+    res = {}
+    files = itertools.chain.from_iterable(class_tree.values())
+    for file in files:
+        print(f"Processing {file}")
+        data, sr = _fetch_data(f'{root}/{file}')
+        metadata['SR'] = sr
+        data = _mfcc_features(data, 20, metadata)
+        res[file] = data
+    return res
+
+
 def main():
     data_dir = "data/raw"
     target_dir = "data/ext"
+    test_files_dir = "data/test"
     random.seed(12345)
-    extract_features(data_dir, target_dir)
+    extract_features(data_dir, target_dir, test_files_dir)
 
 
 if __name__ == '__main__':
