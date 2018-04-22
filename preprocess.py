@@ -28,7 +28,7 @@ def extract_features(data_dir: str, output_dir: str) -> None:
     # Save results
     print("Saving results")
     _save_metadata(output_dir, metadata)
-    _save_results(output_dir, "train", train_data, test_labels)
+    _save_results(output_dir, "train", train_data, train_labels)
     _save_results(output_dir, "test", test_data, test_labels)
 
 
