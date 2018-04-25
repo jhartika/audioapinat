@@ -7,9 +7,6 @@ from sklearn.metrics import accuracy_score
 from sklearn.externals import joblib
 
 def main():
-    #flow
-    #read data
-    #split to classes
     target_dir = "gmm"
 
     train_data_file = "data/ext/train_data.npy"
@@ -40,17 +37,6 @@ def main():
     for i in range(0, n_classes) :
         gmm = joblib.load(f'{target_dir}/gmm_{i}.pkl') 
         gmms.append(gmm)
-
-    #Old way of predicting labels for single samples instead of single files
-    # scores = np.zeros((len(test_data), n_classes))
-    # for i in range(0, n_classes) :
-    #     scores[:, i] = gmms[i].score_samples(test_data)
-        
-    # print(np.shape(scores))
-    # predictions = np.argmax(scores, axis=1)
-    # print(accuracy_score(test_labels, predictions))
-    # print(predictions)
-    # print(test_labels)
 
     """ Predict using the GMMs """
     metadata_filepath = "data/ext/metadata.json"
@@ -85,26 +71,6 @@ def main():
         print(f'pred:{prediction}, label:{label}')
     #Print accuracy score
     print(accuracy_score(labels, preds))
-
-    
-
-    # gmm = GaussianMixture(n_components=10, tol=1e-3, max_iter=100, n_init=1, verbose=1)
-    
-    # for gmm in estimators.values() :
-    #     """currently fitting just one gmm for all training data"""
-    #     """ Would it be useful to try and fit one for each class?"""
-    #     gmm.fit(train_data, train_labels)
-    #     predictions = gmm.predict(test_data)
-    #     """n_estimators = len(estimators)"""
-    #     print(gmm.get_params())
-    #     print(test_labels)
-    #     print(predictions)
-    #     print(accuracy_score(test_labels, predictions))
-    #     print(np.shape(test_labels))
-    #     print(np.shape(predictions))
-        
-
-
 
 if __name__ == '__main__':
     main()
