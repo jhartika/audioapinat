@@ -18,15 +18,29 @@ def extract_features(data_dir: str, output_dir: str, test_file_dir: str) -> None
     metadata = {LABELS_KEY: _labels_to_numbers(class_tree)}
     train, test = _train_test_split(class_tree)
 
+    train_data_spec, train_labels_spec = _form_data_array(data_dir, train, metadata, False)
+    train_data_spec = mel_spectrogram(train_data_spec, 40, metadata)
+    test_data_spec, test_labels_spec = _form_data_array(data_dir, test, metadata, False)
+    test_data_spec = mel_spectrogram(test_data_spec, 40, metadata)
+    
+    test_file_data_spec = _process_files(data_dir, test, metadata)
+    
+    print("Saving results")
+    _save_metadata("data/mel", metadata)
+    _save_results("data/mel", "train", train_data_spec, train_labels_spec)
+    _save_results("data/mel", "test", test_data_spec, test_labels_spec)
+    save_file_results(test_file_dir, test_file_data_spec)
+
     # Process
     print("Processing training samples")
-    train_data, train_labels = _form_data_array(data_dir, train, metadata)
+    train_data, train_labels = _form_data_array(data_dir, train, metadata, True)
     train_data = _mfcc_features(train_data, 20, metadata)
     print("Processing testing samples")
-    test_data, test_labels = _form_data_array(data_dir, test, metadata)
+    test_data, test_labels = _form_data_array(data_dir, test, metadata, True)
     test_data = _mfcc_features(test_data, 20, metadata)
     # Some work which is redone, but cannot be bothered with quality of code
     test_file_data = _process_files(data_dir, test, metadata)
+    
 
     # Save results
     print("Saving results")
@@ -34,6 +48,18 @@ def extract_features(data_dir: str, output_dir: str, test_file_dir: str) -> None
     _save_results(output_dir, "train", train_data, train_labels)
     _save_results(output_dir, "test", test_data, test_labels)
     save_file_results(test_file_dir, test_file_data)
+
+    
+def mel_spectrogram(data: np.ndarray, count: int, metadata: {str: object}) -> np.ndarray:
+    sr = metadata[SR_KEY]
+    metadata[FEATURE_KEY] = f"Mfcc, {count}"
+    rows = data.shape[0]
+    res = np.zeros((rows, count, 44))
+
+    for i in range(rows):
+        s = librosa.feature.melspectrogram(data[i, :], sr, n_mels=40, )
+        res[i, :, :] = s
+    return res
 
 
 def _files_by_class(data_dir: str) -> {str: [str]}:
@@ -70,14 +96,18 @@ def _fetch_data(file: str, sample_length: float =0.1) -> (np.ndarray, int):
     return contents, sr
 
 
-def _fetch_data_for_class(root: str, files: [str]) -> (np.ndarray, int):
+def _fetch_data_for_class(root: str, files: [str], to_split: bool) -> (np.ndarray, int):
 
     fetched = []
     sr = 0
     for file_name in files:
         file_name = f'{root}/{file_name}'
-        contents, sr = _fetch_data(file_name)
-        fetched.append(contents)
+        if to_split:
+            contents, sr = _fetch_data(file_name)
+            fetched.append(contents)
+        else:
+            contents, sr = _fetch_data(file_name, 1.0)
+            fetched.append(contents)
     res = np.concatenate(fetched)
     return res, sr
 
@@ -86,13 +116,13 @@ def _labels_to_numbers(class_tree: {str: [str]}) -> {str: int}:
     return dict([(k, i) for i, k in enumerate(class_tree.keys())])
 
 
-def _form_data_array(data_dir: str, class_tree: {str: [str]}, metadata) -> (np.ndarray, np.ndarray, {str: object}):
+def _form_data_array(data_dir: str, class_tree: {str: [str]}, metadata, to_split: bool) -> (np.ndarray, np.ndarray, {str: object}):
     labels = []
     data = []
     mapping = metadata[LABELS_KEY]
     for label, files in class_tree.items():
         print("Reading files for", label)
-        contents, sr = _fetch_data_for_class(data_dir, files)
+        contents, sr = _fetch_data_for_class(data_dir, files, to_split)
         metadata[SR_KEY] = sr
         num_label = mapping[label]
         labels.append(np.repeat(num_label, contents.shape[0]))
