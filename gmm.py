@@ -51,6 +51,10 @@ def main():
     preds = []
     #Make prediction per file in test_file_dir
     for file_name in test_file_names :
+        parts = file_name.split('_')#Get speaker from filename
+        if(len(parts) != 2) : #data without deltas has 2 parts
+            continue
+        
         data = np.load(f'{test_file_dir}/{file_name}')
         testscores = np.zeros((len(data), n_classes))
         #Score each sample in a file with all GMMs
@@ -65,7 +69,6 @@ def main():
 
         #Gather predictions and correct labels for accuracy score
         preds.append(prediction)
-        parts = file_name.split('_')#Get speaker from filename
         label = metadata['LABELS'][parts[0]]#Get label matching speaker
         labels.append(label)
         print(f'pred:{prediction}, label:{label}')
