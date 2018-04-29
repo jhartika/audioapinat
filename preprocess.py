@@ -23,13 +23,10 @@ def extract_features(data_dir: str, output_dir: str, test_file_dir: str) -> None
     test_data_spec, test_labels_spec = _form_data_array(data_dir, test, metadata, False)
     test_data_spec = mel_spectrogram(test_data_spec, 40, metadata)
     
-    test_file_data_spec = _process_files(data_dir, test, metadata)
-    
     print("Saving results")
     _save_metadata("data/mel", metadata)
     _save_results("data/mel", "train", train_data_spec, train_labels_spec)
     _save_results("data/mel", "test", test_data_spec, test_labels_spec)
-    save_file_results(test_file_dir, test_file_data_spec)
 
     # Process
     print("Processing training samples")
@@ -106,7 +103,9 @@ def _fetch_data_for_class(root: str, files: [str], to_split: bool) -> (np.ndarra
             contents, sr = _fetch_data(file_name)
             fetched.append(contents)
         else:
-            contents, sr = _fetch_data(file_name, 1.0)
+            contents, sr = librosa.load(file_name)
+            contents = contents[: 22050]
+            contents = contents.reshape((1, 22050))
             fetched.append(contents)
     res = np.concatenate(fetched)
     return res, sr
@@ -127,7 +126,6 @@ def _form_data_array(data_dir: str, class_tree: {str: [str]}, metadata, to_split
         num_label = mapping[label]
         labels.append(np.repeat(num_label, contents.shape[0]))
         data.append(contents)
-
     labels = np.concatenate(labels)
     data = np.concatenate(data)
     return data, labels
