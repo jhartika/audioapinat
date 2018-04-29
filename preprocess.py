@@ -47,7 +47,12 @@ def extract_features(data_dir: str, output_dir: str, test_file_dir: str) -> None
     _save_metadata(output_dir, metadata)
     _save_results(output_dir, "train", train_data, train_labels)
     _save_results(output_dir, "test", test_data, test_labels)
+
+    # Process data as single files instead of classes
+    train_file_data = _process_files(data_dir, train, metadata)
+    test_file_data = _process_files(data_dir, test, metadata)
     save_file_results(test_file_dir, test_file_data)
+    save_file_results("data/train_files", train_file_data)
 
     
 def mel_spectrogram(data: np.ndarray, count: int, metadata: {str: object}) -> np.ndarray:
