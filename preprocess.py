@@ -167,11 +167,12 @@ def _save_results(target_dir: str, prefix: str, data: np.ndarray, labels: np.nda
 def save_file_results(target_dir: str, data: {str: np.ndarray}) -> None:
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
-    for file, cont in data.items():
+    for file, (cont, delta) in data.items():
         np.save(f"{target_dir}/{file}", cont)
+        np.save(f"{target_dir}/delta_{file}", delta)
 
 
-def _process_files(root: str, class_tree: {str: [str]}, metadata: {str: object}) -> {str: np.array}:
+def _process_files(root: str, class_tree: {str: [str]}, metadata: {str: object}) -> {str: (np.ndarray, np.ndarray)}:
     res = {}
     files = itertools.chain.from_iterable(class_tree.values())
     for file in files:
@@ -179,8 +180,18 @@ def _process_files(root: str, class_tree: {str: [str]}, metadata: {str: object})
         data, sr = _fetch_data(f'{root}/{file}')
         metadata['SR'] = sr
         data = _mfcc_features(data, 20, metadata)
-        res[file] = data
+        delta = _deltas(data)
+        res[file] = (data, delta)
     return res
+
+
+def _deltas(data: np.ndarray) -> np.ndarray:
+    rows = data.shape[0]
+    res = np.zeros((rows - 1, data.shape[1]))
+    for i in range(rows - 1):
+        res[i, :] = np.subtract(data[i, :], data[i - 1, :])
+    return res
+
 
 
 def main():
