@@ -3,6 +3,7 @@ import itertools
 import json
 import os
 import random
+import re
 
 import librosa
 import numpy as np
@@ -58,10 +59,14 @@ def mel_spectrogram(data: np.ndarray, count: int, metadata: {str: object}) -> np
         res[i, :, :] = s
     return res
 
+def natural_sort(l): 
+    convert = lambda text: int(text) if text.isdigit() else text.lower() 
+    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
+    return sorted(l, key = alphanum_key)
 
 def _files_by_class(data_dir: str) -> {str: [str]}:
     class_tree = {}
-    for file_name in os.listdir(data_dir):
+    for file_name in natural_sort(os.listdir(data_dir)):
         parts = file_name.split('_')
         if parts[0] not in class_tree:
             class_tree[parts[0]] = [file_name]
