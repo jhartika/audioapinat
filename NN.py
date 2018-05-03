@@ -20,24 +20,12 @@ def main():
     
     train_labels = np_utils.to_categorical(train_labels, 34)
     test_labels = np_utils.to_categorical(test_labels, 34)
-
-#    train_data = train_data[..., np.newaxis]
-#    test_data  = test_data[..., np.newaxis]
     
-#    model = Sequential()
-#    
-#    model.add(GRU(64, return_sequences=True, activation='relu',input_shape=(40,44)))
-#    model.add(BatchNormalization())
-#    
-#    model.add(GRU(64, return_sequences=True, activation='relu'))
-#    model.add(BatchNormalization())
-#    
-#    model.add(Flatten())
-#    model.add(Dense(34, activation='softmax'))
-    
+## Best model yet. Stabilises in the 80-85% range. 300 epochs is enough to 
+## reach that point
     model = Sequential()
     
-    model.add(GRU(64, return_sequences=True, activation='relu',
+    model.add(GRU(128, return_sequences=True, activation='relu',
                   dropout=0.5, recurrent_dropout=0.5,input_shape=(40,44)))
     model.add(BatchNormalization())
     
@@ -46,6 +34,8 @@ def main():
     model.add(BatchNormalization())
     
     model.add(Flatten())
+    model.add(Dense(256, activation='relu'))
+    model.add(Dropout(0.5))
     model.add(Dense(128, activation='relu'))
     model.add(Dropout(0.5))
     model.add(Dense(34, activation='softmax'))
@@ -57,7 +47,7 @@ def main():
                   optimizer=optim,
                   metrics=['accuracy'])
     
-    model.fit(train_data, train_labels, epochs = 500, batch_size=5, validation_data = [test_data, test_labels])
+    model.fit(train_data, train_labels, epochs = 300, batch_size=5, validation_data = [test_data, test_labels])
     score = model.evaluate(test_data, test_labels, batch_size=128)
     print(score[1])
     
