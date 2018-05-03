@@ -58,9 +58,8 @@ def main():
         data = np.load(f'{test_file_dir}/{file_name}')
         testscores = np.zeros((len(data), n_classes))
         #Score each sample in a file with all GMMs
-        for sample in data :
-            for i in range(0, n_classes) :
-                testscores[:, i] = gmms[i].score_samples(data)
+        for i in range(0, n_classes) :
+            testscores[:, i] = gmms[i].score_samples(data)
         #Predict label(highest scoring GMM index) for each sample
         predictions = np.argmax(testscores, axis=1)
 

@@ -125,9 +125,8 @@ def main():
 
         testscores = np.zeros((len(data), n_classes))
         #Score each sample in a file with all GMMs
-        for sample in data :
-            for i in range(0, n_classes) :
-                testscores[:, i] = delta_gmms[i].score_samples(data)
+        for i in range(0, n_classes) :
+            testscores[:, i] = delta_gmms[i].score_samples(data)
         
 
         # testscores = np.zeros((len(data)+len(delta_data), n_classes))

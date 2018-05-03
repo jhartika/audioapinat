@@ -103,10 +103,9 @@ def main():
         delta_data = np.load(f'{test_file_dir}/{delta_file_name}')
         testscores = np.zeros((len(data)+len(delta_data), n_classes))
         #Score each sample in a file with all GMMs
-        for sample in data :
-            for i in range(0, n_classes) :
-                testscores[0:len(data), i] = gmms[i].score_samples(data)
-                testscores[len(data):, i] = delta_gmms[i].score_samples(delta_data)
+        for i in range(0, n_classes) :
+            testscores[0:len(data), i] = gmms[i].score_samples(data)
+            testscores[len(data):, i] = delta_gmms[i].score_samples(delta_data)
         #Predict label(highest scoring GMM index) for each sample
         predictions = np.argmax(testscores, axis=1)
 
